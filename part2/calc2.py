@@ -1,7 +1,8 @@
 # Token types
 # EOF (end-of-file) token is used to indicate that
 # there is no more input left for lexical analysis
-INTEGER, PLUS, MINUS, EOF = 'INTEGER', 'PLUS', 'MINUS', 'EOF'
+INTEGER, MULTIPLICATION, DIVISION, PLUS, MINUS, EOF = 'INTEGER', 'MULTIPLICATION', 'DIVISION', 'PLUS', 'MINUS', 'EOF'
+BIN_OPS = [MULTIPLICATION, DIVISION, PLUS, MINUS]
 
 
 class Token(object):
@@ -83,16 +84,24 @@ class Interpreter(object):
                 self.advance()
                 return Token(MINUS, '-')
 
+            if self.current_char == '*':
+                self.advance()
+                return Token(MULTIPLICATION, '*')
+
+            if self.current_char == '/':
+                self.advance()
+                return Token(DIVISION, '/')
+
             self.error()
 
         return Token(EOF, None)
 
-    def eat(self, token_type):
+    def eat(self, *token_types):
         # compare the current token type with the passed token
         # type and if they match then "eat" the current token
         # and assign the next token to the self.current_token,
         # otherwise raise an exception.
-        if self.current_token.type == token_type:
+        if self.current_token.type in token_types:
             self.current_token = self.get_next_token()
         else:
             self.error()
@@ -110,28 +119,33 @@ class Interpreter(object):
         left = self.current_token
         self.eat(INTEGER)
 
-        # we expect the current token to be either a '+' or '-'
-        op = self.current_token
-        if op.type == PLUS:
-            self.eat(PLUS)
-        else:
-            self.eat(MINUS)
+        result = left.value
+        while self.current_token.type != EOF:
+            # we expect the current token to be either a '+' or '-' or '*' or '/'
+            op = self.current_token
+            if op.type in BIN_OPS:
+                self.eat(*BIN_OPS)
 
-        # we expect the current token to be an integer
-        right = self.current_token
-        self.eat(INTEGER)
-        # after the above call the self.current_token is set to
-        # EOF token
+            # we expect the current token to be an integer
+            right = self.current_token
+            self.eat(INTEGER)
+            # after the above call the self.current_token is set to
+            # EOF token
 
-        # at this point either the INTEGER PLUS INTEGER or
-        # the INTEGER MINUS INTEGER sequence of tokens
-        # has been successfully found and the method can just
-        # return the result of adding or subtracting two integers,
-        # thus effectively interpreting client input
-        if op.type == PLUS:
-            result = left.value + right.value
-        else:
-            result = left.value - right.value
+            # at this point either the INTEGER PLUS INTEGER or
+            # the INTEGER MINUS INTEGER sequence of tokens
+            # has been successfully found and the method can just
+            # return the result of adding or subtracting two integers,
+            # thus effectively interpreting client input
+            if op.type == PLUS:
+                result += right.value
+            elif op.type == MINUS:
+                result -= right.value
+            elif op.type == MULTIPLICATION:
+                result *= right.value
+            elif op.type == DIVISION:
+                result /= right.value
+
         return result
 
 
